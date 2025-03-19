@@ -27,7 +27,8 @@
 #define LAUNCHER_ERROR	-1
 #define LAUNCHER_OK		0
 
-char g_pLogFileRaw[10];
+char g_pLogFile[MAX_PATH];
+char g_pConsoleTitle[MAX_PATH];
 int g_iPort = 27015;
 
 class IDedicatedExports : public IBaseInterface
@@ -37,12 +38,12 @@ public:
     virtual void Sys_Printf(const char* text) = 0;
 };
 
+#define VENGINE_DEDICATEDEXPORTS_API_VERSION "VENGINE_DEDICATEDEXPORTS_API_VERSION001"
 
 class CDedicatedExports : public IDedicatedExports {
 public:
     void Sys_Printf(const char* text);
 };
-#define VENGINE_DEDICATEDEXPORTS_API_VERSION "VENGINE_DEDICATEDEXPORTS_API_VERSION001"
 
 EXPOSE_SINGLE_INTERFACE(CDedicatedExports, IDedicatedExports, VENGINE_DEDICATEDEXPORTS_API_VERSION);
 
@@ -93,7 +94,7 @@ public:
         {
             return false;
         }
-        char buffer[260];
+        char buffer[MAX_PATH];
         __time64_t currentTime = 0;
         currentTime = _time64(NULL);
 
@@ -101,10 +102,11 @@ public:
         _localtime64_s(&localTime, &currentTime);
 
         DWORD pid = GetCurrentProcessId();
-        g_pfnDediInitFunc5(buffer, "%s_%04d%02d%02d_%02d%02d%02d_%u_%d.log", g_pLogFileRaw, localTime.tm_year + 0x76C, localTime.tm_mon + 1, localTime.tm_mday, localTime.tm_hour, localTime.tm_min, localTime.tm_sec, pid, g_iPort);
-        g_pfnDediInitFunc5(g_pDediInitDword5, "%sFatal_%04d%02d%02d_%02d%02d%02d_%u_%d.log", g_pLogFileRaw, localTime.tm_year + 0x76C, localTime.tm_mon + 1, localTime.tm_mday, localTime.tm_hour, localTime.tm_min, localTime.tm_sec, pid, g_iPort);
-        g_pfnDediInitFunc5(g_pDediInitDword6, "%s_##ADDR##_%04d%02d%02d_%02d%02d%02d_%u.dmp", g_pLogFileRaw, localTime.tm_year + 0x76C, localTime.tm_mon + 1, localTime.tm_mday, localTime.tm_hour, localTime.tm_min, localTime.tm_sec, pid, g_iPort);
+        g_pfnDediInitFunc5(buffer, "%s_%04d%02d%02d_%02d%02d%02d_%u_%d.log", g_pLogFile, localTime.tm_year + 1900, localTime.tm_mon + 1, localTime.tm_mday, localTime.tm_hour, localTime.tm_min, localTime.tm_sec, pid, g_iPort);
+        g_pfnDediInitFunc5(g_pDediInitDword5, "%sFatal_%04d%02d%02d_%02d%02d%02d_%u_%d.log", g_pLogFile, localTime.tm_year + 1900, localTime.tm_mon + 1, localTime.tm_mday, localTime.tm_hour, localTime.tm_min, localTime.tm_sec, pid, g_iPort);
+        g_pfnDediInitFunc5(g_pDediInitDword6, "%s_##ADDR##_%04d%02d%02d_%02d%02d%02d_%u.dmp", g_pLogFile, localTime.tm_year + 1900, localTime.tm_mon + 1, localTime.tm_mday, localTime.tm_hour, localTime.tm_min, localTime.tm_sec, pid, g_iPort);
 
+        snprintf(g_pConsoleTitle, sizeof(g_pConsoleTitle), "%s_%04d%02d%02d_%02d%02d%02d_%u_%d", g_pLogFile, localTime.tm_year + 1900, localTime.tm_mon + 1, localTime.tm_mday, localTime.tm_hour, localTime.tm_min, localTime.tm_sec, pid, g_iPort);
 
         g_pfnDediInitFunc8(buffer, 0, 0);
 
@@ -167,7 +169,6 @@ EXPOSE_SINGLE_INTERFACE(CDedicatedServerAPI, IDedicatedServerAPI, VENGINE_HLDS_A
 using SleepFunc = void (*)();
 SleepFunc sleep_thread = nullptr;
 
-char g_pLogFile[MAX_PATH];
 int g_iPingBoost = 0;
 bool g_bTerminated = false;
 IFileSystem* g_pFileSystem;
@@ -244,7 +245,7 @@ void UpdateStatus(int force)
     }
 
     tLast = tCurrent;
-    snprintf(szStatus, sizeof(szStatus), "%s - %.1f fps %2i/%2i on %16s", g_pLogFile, fps, n, nMax, szMap);
+    snprintf(szStatus, sizeof(szStatus), "%s - %.1f fps %2i/%2i on %16s", g_pConsoleTitle, fps, n, nMax, szMap);
 
     SetConsoleTitle(szStatus);
 }
@@ -604,21 +605,6 @@ int main(int argc, char* argv)
         else if (logfile)
             memcpy(g_pLogFile, logfile, sizeof(g_pLogFile));
 
-        memcpy(g_pLogFileRaw, g_pLogFile, sizeof(g_pLogFileRaw));
-        time_t currentTime = time(NULL);
-        tm* currentLocalTime = localtime(&currentTime);
-        int currentProcessId = GetCurrentProcessId();
-        snprintf(g_pLogFile, sizeof(g_pLogFile), "%s_%04d%02d%02d_%02d%02d%02d_%u_%d",
-            g_pLogFile,
-            currentLocalTime->tm_year + 1900,
-            currentLocalTime->tm_mon + 1,
-            currentLocalTime->tm_mday,
-            currentLocalTime->tm_hour,
-            currentLocalTime->tm_min,
-            currentLocalTime->tm_sec,
-            currentProcessId,
-            g_iPort);
-
         if (CommandLine()->CheckParm("-vxlpath") == NULL)
         {
             TCHAR lpTempPathBuffer[MAX_PATH];
@@ -653,14 +639,13 @@ int main(int argc, char* argv)
             return LAUNCHER_ERROR;
         }
 
-
         CreateInterfaceFn engineCreateInterface = (CreateInterfaceFn)Sys_GetFactoryThis();
         engineAPI = (IDedicatedServerAPI*)engineCreateInterface(VENGINE_HLDS_API_VERSION, NULL);
-        Hook((HMODULE)hEngine);
 
         if (!engineCreateInterface || !engineAPI)
             return LAUNCHER_ERROR;
 
+        Hook((HMODULE)hEngine);
 
         if (!engineAPI->Init(Sys_GetLongPathNameWithoutBin(), CommandLine()->GetCmdLine(), Sys_GetFactoryThis(), fsCreateInterface))
             return LAUNCHER_ERROR;

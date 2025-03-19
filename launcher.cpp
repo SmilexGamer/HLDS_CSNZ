@@ -27,17 +27,9 @@
 #define LAUNCHER_ERROR	-1
 #define LAUNCHER_OK		0
 
-class IDedicatedServerAPI : public IBaseInterface
-{
-public:
-    virtual bool Init(const char* basedir, const char* cmdline, CreateInterfaceFn launcherFactory, CreateInterfaceFn filesystemFactory) = 0;
-    virtual int Shutdown() = 0;
-    virtual bool RunFrame() = 0;
-    virtual void AddConsoleText(char* text) = 0;
-    virtual void UpdateStatus(float* fps, int* nActive, int* nMaxPlayers, char* pszMap) = 0;
-};
-
-#define VENGINE_HLDS_API_VERSION "VENGINE_HLDS_API_VERSION002"
+char g_pLogFile[MAX_PATH];
+char g_pConsoleTitle[MAX_PATH];
+int g_iPort = 27015;
 
 class IDedicatedExports : public IBaseInterface
 {
@@ -60,11 +52,123 @@ void CDedicatedExports::Sys_Printf(const char* text)
     printf(text);
 }
 
+class IDedicatedServerAPI : public IBaseInterface
+{
+public:
+    virtual ~IDedicatedServerAPI() {};
+    virtual bool Init(const char* basedir, const char* cmdline, CreateInterfaceFn launcherFactory, CreateInterfaceFn filesystemFactory) = 0;
+    virtual int Shutdown() = 0;
+    virtual bool RunFrame() = 0;
+    virtual char* AddConsoleText(char* text) = 0;
+    virtual void* UpdateStatus(float* fps, int* nActive, int* nMaxPlayers, char* pszMap) = 0;
+};
+
+class CDedicatedServerAPI : public IDedicatedServerAPI
+{
+private:
+    char m_OrigCmd[1024];
+
+public:
+    bool Init(const char* basedir, const char* cmdline, CreateInterfaceFn launcherFactory, CreateInterfaceFn filesystemFactory)
+    {
+        *(IDedicatedExports**)g_pDediInitDwordExport = (IDedicatedExports*)launcherFactory(VENGINE_DEDICATEDEXPORTS_API_VERSION, nullptr);
+        if (!*(IDedicatedExports**)g_pDediInitDwordExport)
+            return false;
+
+        strncpy(this->m_OrigCmd, cmdline, ARRAYSIZE(this->m_OrigCmd));
+        this->m_OrigCmd[ARRAYSIZE(this->m_OrigCmd) - 1] = 0;
+
+        g_pfnDediInitFunc1("Sys_InitArgv( m_OrigCmd )", "Sys_ShutdownArgv()", 0);
+        g_pfnDediInitFunc2(this->m_OrigCmd);
+        g_pCEngine->SetQuitting(0);
+        g_pCRegistry->Init();
+        g_pIsDedicated = true;
+
+        g_pfnDediInitFunc1("FileSystem_Init(basedir, (void *)filesystemFactory)", "FileSystem_Shutdown()", 0);
+        if (!g_pfnDediInitFunc3(basedir, (void*)filesystemFactory))
+        {
+            return false;
+        }
+        g_pCGame->CreateWin();
+        if (!g_pCGame->Init(nullptr))
+        {
+            return false;
+        }
+        char buffer[MAX_PATH];
+        __time64_t currentTime = 0;
+        currentTime = _time64(NULL);
+
+        struct tm localTime;
+        _localtime64_s(&localTime, &currentTime);
+
+        DWORD pid = GetCurrentProcessId();
+        g_pfnDediInitFunc5(buffer, "%s_%04d%02d%02d_%02d%02d%02d_%u_%d.log", g_pLogFile, localTime.tm_year + 1900, localTime.tm_mon + 1, localTime.tm_mday, localTime.tm_hour, localTime.tm_min, localTime.tm_sec, pid, g_iPort);
+        g_pfnDediInitFunc5(g_pDediInitDword5, "%sFatal_%04d%02d%02d_%02d%02d%02d_%u_%d.log", g_pLogFile, localTime.tm_year + 1900, localTime.tm_mon + 1, localTime.tm_mday, localTime.tm_hour, localTime.tm_min, localTime.tm_sec, pid, g_iPort);
+        g_pfnDediInitFunc5(g_pDediInitDword6, "%s_##ADDR##_%04d%02d%02d_%02d%02d%02d_%u.dmp", g_pLogFile, localTime.tm_year + 1900, localTime.tm_mon + 1, localTime.tm_mday, localTime.tm_hour, localTime.tm_min, localTime.tm_sec, pid, g_iPort);
+
+        snprintf(g_pConsoleTitle, sizeof(g_pConsoleTitle), "%s_%04d%02d%02d_%02d%02d%02d_%u_%d", g_pLogFile, localTime.tm_year + 1900, localTime.tm_mon + 1, localTime.tm_mday, localTime.tm_hour, localTime.tm_min, localTime.tm_sec, pid, g_iPort);
+
+        g_pfnDediInitFunc8(buffer, 0, 0);
+
+        void* hwnd = g_pCGame->Func24();
+        g_pfnDediInitFunc6(hwnd);
+
+        *(DWORD**)(*(DWORD*)g_pBaseSocket + 0xC) = (DWORD*)g_pCGame->Func24();
+        g_pCGame->Shutdown();
+
+        g_pfnDediInitFunc10(buffer);
+        g_pfnDediInitFunc10(g_pDediInitDword5);
+
+        if (!g_pCEngine->Load(true, basedir, cmdline))
+            return false;
+
+        //char text[256];
+        //snprintf(text, ARRAYSIZE(text), "exec %s\n", "server.cfg");
+        //text[255] = 0;
+        g_pfnDediInitFunc7("exec server.cfg\n");
+
+        if (g_pPacketHostServer)
+        {
+            g_pfnDediInitFunc9(g_pPacketHostServer, buffer);
+        }
+        return true;
+    };
+    int Shutdown()
+    {
+        g_pCEngine->Unload();
+        g_pCGame->DestroyWin();
+        g_pfnDediShutdownFunc1("FileSystem_Shutdown()", 0);
+        g_pfnDediShutdownFunc2();
+        g_pCRegistry->RegClose();
+        g_pfnDediShutdownFunc1("Sys_ShutdownArgv()", 0);
+        *(void**)g_pDediInitDwordExport = nullptr;
+        return *(int*)g_pServerState;
+    };
+    bool RunFrame()
+    {
+        if (g_pCEngine->GetQuitting())
+        {
+            return false;
+        }
+        g_pCEngine->Frame();
+        return true;
+    };
+    char* AddConsoleText(char* text)
+    {
+        return g_pfnDediAddTextFunc(text);
+    };
+    void* UpdateStatus(float* fps, int* nActive, int* nMaxPlayers, char* pszMap)
+    {
+        return g_pfnDediUpdateStatusFunc(fps, nActive, nullptr, nMaxPlayers, pszMap);
+    };
+};
+#define VENGINE_HLDS_API_VERSION "VENGINE_HLDS_API_VERSION002"
+
+EXPOSE_SINGLE_INTERFACE(CDedicatedServerAPI, IDedicatedServerAPI, VENGINE_HLDS_API_VERSION);
+
 using SleepFunc = void (*)();
 SleepFunc sleep_thread = nullptr;
 
-char g_pLogFile[MAX_PATH];
-int g_iPort = 27015;
 int g_iPingBoost = 0;
 bool g_bTerminated = false;
 IFileSystem* g_pFileSystem;
@@ -96,8 +200,8 @@ HINTERFACEMODULE LoadFilesystemModule(void)
 
     if (!hModule)
     {
-	    MessageBox(NULL, "Could not load filesystem dll.\nFileSystem crashed during construction.", "Fatal Error", MB_ICONERROR);
-	    return NULL;
+        MessageBox(NULL, "Could not load filesystem dll.\nFileSystem crashed during construction.", "Fatal Error", MB_ICONERROR);
+        return NULL;
     }
 
     return hModule;
@@ -111,10 +215,10 @@ BOOL WINAPI ConsoleCtrlHandler(DWORD CtrlType)
     case CTRL_CLOSE_EVENT:
     case CTRL_LOGOFF_EVENT:
     case CTRL_SHUTDOWN_EVENT:
-	    g_bTerminated = true;
-	    return TRUE;
+        g_bTerminated = true;
+        return TRUE;
     default:
-	    break;
+        break;
     }
 
     return FALSE;
@@ -129,19 +233,19 @@ void UpdateStatus(int force)
     float fps;
 
     if (!engineAPI)
-	    return;
+        return;
 
     double tCurrent = timeGetTime() * 0.001;
     engineAPI->UpdateStatus(&fps, &n, &nMax, szMap);
 
     if (!force)
     {
-	    if ((tCurrent - tLast) < 0.5f)
-		    return;
+        if ((tCurrent - tLast) < 0.5f)
+            return;
     }
 
     tLast = tCurrent;
-    snprintf(szStatus, sizeof(szStatus), "%s - %.1f fps %2i/%2i on %16s", g_pLogFile, fps, n, nMax, szMap);
+    snprintf(szStatus, sizeof(szStatus), "%s - %.1f fps %2i/%2i on %16s", g_pConsoleTitle, fps, n, nMax, szMap);
 
     SetConsoleTitle(szStatus);
 }
@@ -411,26 +515,26 @@ void PrepareConsoleInput()
 {
     MSG msg;
     while (PeekMessage(&msg, nullptr, 0, 0, PM_NOREMOVE)) {
-	    if (!GetMessage(&msg, nullptr, 0, 0)) {
-		    break;
-	    }
+        if (!GetMessage(&msg, nullptr, 0, 0)) {
+            break;
+        }
 
-	    TranslateMessage(&msg);
-	    DispatchMessage(&msg);
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
     }
 }
 
 void ProcessConsoleInput()
 {
     if (!engineAPI)
-	    return;
+        return;
 
     const char* inputLine = Console_GetLine();
     if (inputLine)
     {
-	    char szBuf[256];
-	    snprintf(szBuf, sizeof(szBuf), "%s\n", inputLine);
-	    engineAPI->AddConsoleText(szBuf);
+        char szBuf[256];
+        snprintf(szBuf, sizeof(szBuf), "%s\n", inputLine);
+        engineAPI->AddConsoleText(szBuf);
     }
 }
 
@@ -501,20 +605,6 @@ int main(int argc, char* argv)
         else if (logfile)
             memcpy(g_pLogFile, logfile, sizeof(g_pLogFile));
 
-        time_t currentTime = time(NULL);
-        tm* currentLocalTime = localtime(&currentTime);
-        int currentProcessId = GetCurrentProcessId();
-        snprintf(g_pLogFile, sizeof(g_pLogFile), "%s_%04d%02d%02d_%02d%02d%02d_%u_%d",
-            g_pLogFile,
-            currentLocalTime->tm_year + 1900,
-            currentLocalTime->tm_mon + 1,
-            currentLocalTime->tm_mday,
-            currentLocalTime->tm_hour,
-            currentLocalTime->tm_min,
-            currentLocalTime->tm_sec,
-            currentProcessId,
-            g_iPort);
-
         if (CommandLine()->CheckParm("-vxlpath") == NULL)
         {
             TCHAR lpTempPathBuffer[MAX_PATH];
@@ -549,7 +639,7 @@ int main(int argc, char* argv)
             return LAUNCHER_ERROR;
         }
 
-        CreateInterfaceFn engineCreateInterface = (CreateInterfaceFn)Sys_GetFactory(hEngine);
+        CreateInterfaceFn engineCreateInterface = (CreateInterfaceFn)Sys_GetFactoryThis();
         engineAPI = (IDedicatedServerAPI*)engineCreateInterface(VENGINE_HLDS_API_VERSION, NULL);
 
         if (!engineCreateInterface || !engineAPI)

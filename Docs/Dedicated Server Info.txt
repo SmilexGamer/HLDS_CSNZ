@@ -11,7 +11,7 @@ Launch parameter list for the dedicated server:
 2. -lobbyport <lobbyport> (master server's port. default: 30002)
 3. -hostip <hostip> (dedicated server's IP. if not set, the master server will get the IP)
 4. -port <port> (dedicated server's port. default: 27015)
-5. -logfile <logfile> (suffix of the .log file. default: csods)
+5. -logfile <logfile> (prefix of the .log file. default: csods)
 6. -vxlpath <path> (path to where the .vxl files will be stored when downloaded by the dedicated server. the path must not contain spaces, or else it will be cut off. default: %temp%)
 7. -pingboost <value> (sleep function. 4 - NtDelayExecution(FALSE, -1LL), 5 - this_thread::yield(). if not set, the server will be stuck on 64fps, so it's recommended to either use -pingboost 4 or 5. default: 0 - this_thread::sleep_for(1ms))
 8. -usessl (use ssl when connecting to the master server. by default, not using ssl)

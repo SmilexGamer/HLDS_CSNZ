@@ -92,9 +92,6 @@ DWORD g_dwMpSize;
 #define DEDI_API_INIT_FUNC_3_SIG_CSNZ "\x55\x8B\xEC\x8B\x4D\x00\xBA\x00\x00\x00\x00\x2B\xD1"
 #define DEDI_API_INIT_FUNC_3_MASK_CSNZ "xxxxx?x????xx"
 
-#define DEDI_API_INIT_FUNC_4_SIG_CSNZ "\xE8\x00\x00\x00\x00\x8B\xD0\x83\xC4\x00\x85\xD2\x74\x00\x8B\x0D\x00\x00\x00\x00\x49\x3B\xD1\x7D\x00\xA1\x00\x00\x00\x00\x68\x00\x00\x00\x00\xFF\x74\x90\x00\x8D\x85\x00\x00\x00\x00\x50\xE8\x00\x00\x00\x00\x83\xC4\x00\xC6\x45\x00\x00\x68"
-#define DEDI_API_INIT_FUNC_4_MASK_CSNZ "x????xxxx?xxx?xx????xxxx?x????x????xxx?xx????xx????xx?xx??x"
-
 #define DEDI_API_INIT_FUNC_5_SIG_CSNZ "\x55\x8B\xEC\x8D\x45\x00\x50\x6A\x00\xFF\x75\x00\x6A\x00\xFF\x75\x00\xE8\x00\x00\x00\x00\x8B\x08\xFF\x70\x00\x83\xC9\x00\x51\xFF\x15\x00\x00\x00\x00\x83\xC9"
 #define DEDI_API_INIT_FUNC_5_MASK_CSNZ "xxxxx?xx?xx?x?xx?x????xxxx?xx?xxx????xx"
 
@@ -163,7 +160,7 @@ public:
 
 CCSBotManager* g_pBotManager = NULL;;
 
-typedef void* (*tEVP_CIPHER_CTX_new)();
+typedef void*(*tEVP_CIPHER_CTX_new)();
 tEVP_CIPHER_CTX_new g_pfnEVP_CIPHER_CTX_new;
 
 typedef void* (*tCVoxelAdapter)();
@@ -420,17 +417,13 @@ void Hook(HMODULE hModule)
 	if (!find)
 		MessageBox(NULL, "DEDI_API_ADDTEXT == NULL!!!", "Error", MB_OK);
 	else
-	{
 		g_pfnDediAddTextFunc = (pfnDediAddTextFunc)(find + 0x30);
-	}
 
 	find = FindPattern(DEDI_API_UPDATESTATUS_SIG_CSNZ, DEDI_API_UPDATESTATUS_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 	if (!find)
 		MessageBox(NULL, "DEDI_API_UPDATESTATUS == NULL!!!", "Error", MB_OK);
 	else
-	{
 		g_pfnDediUpdateStatusFunc = (pfnDediUpdateStatusFunc)find;
-	}
 
 	find = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, "QuitLog : GetQuitting [%d]\n");
 	if (!find)
@@ -564,14 +557,6 @@ void Hook(HMODULE hModule)
 		MessageBox(NULL, "DEDI_API_INIT_FUNC_3 == NULL!!!", "Error", MB_OK);
 	else
 		g_pfnDediInitFunc3 = (pfnDediInitFunc3)find;
-
-	find = FindPattern(DEDI_API_INIT_FUNC_4_SIG_CSNZ, DEDI_API_INIT_FUNC_4_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-	if (!find)
-	{
-	}
-	//MessageBox(NULL, "DEDI_API_INIT_FUNC_4 == NULL!!!", "Error", MB_OK);
-	else
-		g_pfnDediInitFunc4 = (pfnDediInitFunc4)find;
 
 	find = FindPattern(DEDI_API_INIT_FUNC_5_SIG_CSNZ, DEDI_API_INIT_FUNC_5_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 	if (!find)

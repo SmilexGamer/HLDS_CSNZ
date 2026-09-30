@@ -104,7 +104,6 @@ public:
         DWORD pid = GetCurrentProcessId();
         g_pfnDediInitFunc5(buffer, "%s_%04d%02d%02d_%02d%02d%02d_%u_%d.log", g_pLogFile, localTime.tm_year + 1900, localTime.tm_mon + 1, localTime.tm_mday, localTime.tm_hour, localTime.tm_min, localTime.tm_sec, pid, g_iPort);
         g_pfnDediInitFunc5(g_pDediInitDword5, "%sFatal_%04d%02d%02d_%02d%02d%02d_%u_%d.log", g_pLogFile, localTime.tm_year + 1900, localTime.tm_mon + 1, localTime.tm_mday, localTime.tm_hour, localTime.tm_min, localTime.tm_sec, pid, g_iPort);
-        g_pfnDediInitFunc5(g_pDediInitDword6, "%s_##ADDR##_%04d%02d%02d_%02d%02d%02d_%u.dmp", g_pLogFile, localTime.tm_year + 1900, localTime.tm_mon + 1, localTime.tm_mday, localTime.tm_hour, localTime.tm_min, localTime.tm_sec, pid, g_iPort);
 
         snprintf(g_pConsoleTitle, sizeof(g_pConsoleTitle), "%s_%04d%02d%02d_%02d%02d%02d_%u_%d", g_pLogFile, localTime.tm_year + 1900, localTime.tm_mon + 1, localTime.tm_mday, localTime.tm_hour, localTime.tm_min, localTime.tm_sec, pid, g_iPort);
 
@@ -127,10 +126,8 @@ public:
         //text[255] = 0;
         g_pfnDediInitFunc7("exec server.cfg\n");
 
-        if (g_pPacketHostServer)
-        {
-            g_pfnDediInitFunc9(g_pPacketHostServer, buffer);
-        }
+        g_pfnDediInitFunc9(buffer);
+
         return true;
     };
     int Shutdown()
@@ -541,8 +538,7 @@ void ProcessConsoleInput()
 // pingboost 0
 void sleep_1ms() noexcept
 {
-    using namespace std::chrono_literals;
-    std::this_thread::sleep_for(1ms);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
 }
 
 static NTSTATUS(__stdcall* NtDelayExecution)(BOOL Alertable, PLARGE_INTEGER DelayInterval) = (NTSTATUS(__stdcall*)(BOOL, PLARGE_INTEGER)) GetProcAddress(GetModuleHandle("ntdll.dll"), "NtDelayExecution");

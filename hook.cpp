@@ -7,6 +7,12 @@
 #include <sstream>
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <iostream>
+#include <sys/stat.h> // stat
+#include <errno.h>    // errno, ENOENT, EEXIST
+#if defined(_WIN32)
+#include <direct.h>   // _mkdir
+#endif
 
 DWORD g_dwEngineBase;
 DWORD g_dwEngineSize;
@@ -14,44 +20,44 @@ DWORD g_dwEngineSize;
 DWORD g_dwMpBase;
 DWORD g_dwMpSize;
 
-#define SOCKETMANAGER_SIG_CSNZ23 "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x51\x53\x56\x57\xA1\x00\x00\x00\x00\x33\xC5\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\xD9\x89\x5D\x00\x8A\x45"
-#define SOCKETMANAGER_MASK_CSNZ23 "xxxx?x????xx????xxxxxx????xxxxx?xx????xxxx?xx"
+#define SOCKETMANAGER_SIG_CSNZ "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x51\x53\x56\x57\xA1\x00\x00\x00\x00\x33\xC5\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\xD9\x89\x5D\x00\x8A\x45"
+#define SOCKETMANAGER_MASK_CSNZ "xxxx?x????xx????xxxxxx????xxxxx?xx????xxxx?xx"
 
-#define PACKET_HACK_PARSE_SIG_CSNZ "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x83\xEC\x00\x53\x56\x57\xA1\x00\x00\x00\x00\x33\xC5\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\xD9\x89\x5D\x00\x8B\x45\x00\x89\x45\x00\x8B\x45\x00\xC7\x45\x00\x00\x00\x00\x00\xC7\x45\x00\x00\x00\x00\x00\x89\x45\x00\x6A\x00\x8D\x45\x00\xC7\x45\x00\x00\x00\x00\x00\x50\x8D\x4D\x00\xE8\x00\x00\x00\x00\x0F\xB6\x45\x00\x89\x43\x00\x83\xE8"
-#define PACKET_HACK_PARSE_MASK_CSNZ "xxxx?x????xx????xxx?xxxx????xxxxx?xx????xxxx?xx?xx?xx?xx?????xx?????xx?x?xx?xx?????xxx?x????xxx?xx?xx"
+#define PACKET_HACK_PARSE_SIG_CSNZ "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x83\xEC\x00\x57\xA1\x00\x00\x00\x00\x33\xC5\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\xF9\x8B\x45\x00\x89\x45"
+#define PACKET_HACK_PARSE_MASK_CSNZ "xxxx?x????xx????xxx?xx????xxxxx?xx????xxxx?xx"
 
-#define PACKET_HACK_SEND_SIG_CSNZ "\xE8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\xEB\x00\x43\x56\x20\x20\x0D"
-#define PACKET_HACK_SEND_MASK_CSNZ "x????x????x?xxxxx"
+#define PACKET_HACK_SEND_SIG_CSNZ "\xE8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x83\x3D\x00\x00\x00\x00\x00\x74\x00\xE8\x00\x00\x00\x00\xE8"
+#define PACKET_HACK_SEND_MASK_CSNZ "x????x????x????x????xx????xx?x????x"
 
 #define BOT_MANAGER_PTR_SIG_CSNZ "\xA3\x00\x00\x00\x00\xC7\x45\x00\x00\x00\x00\x00\xFF\x15\x00\x00\x00\x00\x83\xC4"
 #define BOT_MANAGER_PTR_MASK_CSNZ "x????xx?????xx????xx"
 
-#define LOGTOERRORLOG_SIG_CSNZ "\x55\x8B\xEC\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x57\x8B\x7D\x00\x8D\x45\x00\x50\x6A"
-#define LOGTOERRORLOG_MASK_CSNZ "xxxxx????x????xxxx?xxxx?xx?xx"
+#define LOGTOERRORLOG_SIG_CSNZ "\x53\x8B\xDC\x83\xEC\x00\x83\xE4\x00\x83\xC4\x00\x55\x8B\x6B\x00\x89\x6C\x24\x00\x8B\xEC\x83\xEC\x00\x56\x57\x8B\x7B\x00\x85\xFF"
+#define LOGTOERRORLOG_MASK_CSNZ "xxxxx?xx?xx?xxx?xxx?xxxx?xxxx?xx"
 
 #define GETSSLPROTOCOLNAME_SIG_CSNZ "\xE8\x00\x00\x00\x00\xB9\x00\x00\x00\x00\x8A\x10"
 #define GETSSLPROTOCOLNAME_MASK_CSNZ "x????x????xx"
 
-#define SOCKETCONSTRUCTOR_SIG_CSNZ "\xE8\x00\x00\x00\x00\xEB\x00\x33\xC0\x53\xC7\x45"
-#define SOCKETCONSTRUCTOR_MASK_CSNZ "x????x?xxxxx"
+#define SOCKETCONSTRUCTOR_SIG_CSNZ "\xE8\x00\x00\x00\x00\xEB\x00\x33\xC0\xFF\x75\x00\xC7\x45"
+#define SOCKETCONSTRUCTOR_MASK_CSNZ "x????x?xxxx?xx"
 
 #define EVP_CIPHER_CTX_NEW_SIG_CSNZ "\xE8\x00\x00\x00\x00\x8B\xF8\x89\xBE"
 #define EVP_CIPHER_CTX_NEW_MASK_CSNZ "x????xxxx"
 
-#define PACKET_VOXEL_PARSE_SIG_CSNZ "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x57\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\xF9\x89\xBD\x00\x00\x00\x00\x8B\x45\x00\x33\xF6\x89\xB5\x00\x00\x00\x00\x89\x85\x00\x00\x00\x00\x8B\x45\x00\xC7\x85\x00\x00\x00\x00\x00\x00\x00\x00\x89\xB5\x00\x00\x00\x00\x89\x85\x00\x00\x00\x00\x6A\x00\x8D\x85\x00\x00\x00\x00\x89\x75\x00\x50\x8D\x8D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x0F\xB6\x8D"
-#define PACKET_VOXEL_PARSE_MASK_CSNZ "xxxx?x????xx????xxx????x????xxxx?xxxxx?xx????xxxx????xx?xxxx????xx????xx?xx????????xx????xx????x?xx????xx?xxx????x????xxx"
+#define PACKET_METADATA_PARSE_SIG_CSNZ "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x57\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\xF1\x89\xB5\x00\x00\x00\x00\x8B\x45\x00\x89\x85"
+#define PACKET_METADATA_PARSE_MASK_CSNZ "xxxx?x????xx????xxx????x????xxxx?xxxxx?xx????xxxx????xx?xx"
 
-#define VOXEL_LOADWORLD_SIG_CSNZ "\x55\x8B\xEC\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x83\x3D\x00\x00\x00\x00\x00\x0F\x84\x00\x00\x00\x00\x83\x3D\x00\x00\x00\x00\x00\x56"
-#define VOXEL_LOADWORLD_MASK_CSNZ "xxxxx????x????xxxx?xx?????xx????xx?????x"
+#define VOXEL_LOADWORLD_SIG_CSNZ "\x55\x8B\xEC\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x57\x8B\x3D\x00\x00\x00\x00\x85\xFF\x0F\x84\x00\x00\x00\x00\x83\x3D\x00\x00\x00\x00\x00"
+#define VOXEL_LOADWORLD_MASK_CSNZ "xxxxx????x????xxxx?xxx????xxxx????xx????x"
 
-#define VOXELADAPTER_PTR_SIG_CSNZ "\xE8\x00\x00\x00\x00\x83\xFE\x00\x7C"
-#define VOXELADAPTER_PTR_MASK_CSNZ "x????xx?x"
+#define VOXELADAPTER_PTR_SIG_CSNZ "\xE8\x00\x00\x00\x00\x8B\xF0\x8B\x47"
+#define VOXELADAPTER_PTR_MASK_CSNZ "x????xxxx"
 
-#define VOXELWORLD_PTR_SIG_CSNZ "\x83\x3D\x00\x00\x00\x00\x00\x0F\x84\x00\x00\x00\x00\x83\x3D\x00\x00\x00\x00\x00\x56"
-#define VOXELWORLD_PTR_MASK_CSNZ "xx?????xx????xx?????x"
+#define VOXELWORLD_PTR_SIG_CSNZ "\x8B\x3D\x00\x00\x00\x00\x85\xFF\x0F\x84\x00\x00\x00\x00\x83\x3D\x00\x00\x00\x00\x00"
+#define VOXELWORLD_PTR_MASK_CSNZ "xx????xxxx????xx????x"
 
-#define DEDI_API_ADDTEXT_SIG_CSNZ "\x55\x8B\xEC\x8B\x4D\x00\x8B\x81\x00\x00\x00\x00\x3B\x05"
-#define DEDI_API_ADDTEXT_MASK_CSNZ "xxxxx?xx????xx"
+#define DEDI_API_ADDTEXT_SIG_CSNZ "\xE9\x00\x00\x00\x00\x55\x8B\xEC\x81\xEC"
+#define DEDI_API_ADDTEXT_MASK_CSNZ "x????xxxxx"
 
 #define DEDI_API_UPDATESTATUS_SIG_CSNZ "\x55\x8B\xEC\x51\xF2\x0F\x10\x0D\x00\x00\x00\x00\x0F\x57\xC0"
 #define DEDI_API_UPDATESTATUS_MASK_CSNZ "xxxxxxxx????xxx"
@@ -59,26 +65,17 @@ DWORD g_dwMpSize;
 #define CGAME_INSTANCE_SIG_CSNZ "\x8B\x0D\x00\x00\x00\x00\x56\x8B\x01\xFF\x50\x00\x50\xE8\x00\x00\x00\x00\x8B\xF0"
 #define CGAME_INSTANCE_MASK_CSNZ "xx????xxxxx?xx????xx"
 
-#define DEDI_INIT_DWORD_1_SIG_CSNZ "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x83\xEC\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x57\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x83\x3D\x00\x00\x00\x00\x00\x74"
-#define DEDI_INIT_DWORD_1_MASK_CSNZ "xxxx?x????xx????xxx?x????xxxx?xxxxx?xx????xx?????x"
+#define DEDI_INIT_DWORD_1_SIG_CSNZ "\x55\x8B\xEC\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x8B\x45\x00\x56\x57\x89\x85"
+#define DEDI_INIT_DWORD_1_MASK_CSNZ "xxxxx????x????xxxx?xx?xxxx"
 
 #define DEDI_INIT_DWORD_3_SIG_CSNZ "\x56\x8B\xF1\x8B\xD6"
 #define DEDI_INIT_DWORD_3_MASK_CSNZ "xxxxx"
 
-#define DEDI_INIT_DWORD_4_SIG_CSNZ "\x83\x3D\x00\x00\x00\x00\x00\x74\x00\xF3\x0F\x10\x05\x00\x00\x00\x00\xE8"
-#define DEDI_INIT_DWORD_4_MASK_CSNZ "xx?????x?xxxx????x"
-
 #define DEDI_INIT_DWORD_5_SIG_CSNZ "\x55\x8B\xEC\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x57\x8D\x45\x00\x50\x6A\x00\xFF\x75\x00\x8D\x85\x00\x00\x00\x00\x68\x00\x00\x00\x00\x50"
 #define DEDI_INIT_DWORD_5_MASK_CSNZ "xxxxx????x????xxxx?xxxx?xx?xx?xx????x????x"
 
-#define DEDI_INIT_DWORD_6_SIG_CSNZ "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x57\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\x45\x00\x8B\x4D\x00\x8B\x75\x00\x6A"
-#define DEDI_INIT_DWORD_6_MASK_CSNZ "xxxx?x????xx????xxx????x????xxxx?xxxxx?xx????xx?xx?xx?x"
-
 #define DEDI_INIT_DWORD_EXPORT_SIG_CSNZ "\x55\x8B\xEC\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x8D\x45\x00\x50\x6A\x00\xFF\x75\x00\x8D\x85\x00\x00\x00\x00\x68\x00\x00\x00\x00\x50\xE8\x00\x00\x00\x00\x8B\x08\xFF\x70\x00\x83\xC9\x00\x51\xFF\x15\x00\x00\x00\x00\x8B\x0D"
 #define DEDI_INIT_DWORD_EXPORT_MASK_CSNZ "xxxxx????x????xxxx?xx?xx?xx?xx????x????xx????xxxx?xx?xxx????xx"
-
-#define DEDI_INIT_DWORD_8_SIG_CSNZ "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x83\xEC\x00\x53\x56\x57\xA1\x00\x00\x00\x00\x33\xC5\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\xD9\x89\x5D\x00\xC7\x03\x00\x00\x00\x00\x83\x3D"
-#define DEDI_INIT_DWORD_8_MASK_CSNZ "xxxx?x????xx????xxx?xxxx????xxxxx?xx????xxxx?xx????xx"
 
 #define CSERVERSTATE_SIG_CSNZ "\x55\x8B\xEC\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\xC7\x05"
 #define CSERVERSTATE_MASK_CSNZ "xxxxx????x????xxxx?xx"
@@ -101,8 +98,8 @@ DWORD g_dwMpSize;
 #define DEDI_API_INIT_FUNC_8_SIG_CSNZ "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\xA1\x00\x00\x00\x00\x33\xC5\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\xFF\x75"
 #define DEDI_API_INIT_FUNC_8_MASK_CSNZ "xxxx?x????xx????xx????xxxxx?xx????xx"
 
-#define DEDI_API_INIT_FUNC_9_SIG_CSNZ "\x55\x8B\xEC\x8B\x55\x00\x8B\xC2\x56\x57\x8B\xF1\x8D\x78\x00\x90\x8A\x08\x40\x84\xC9\x75\x00\x2B\xC7\x8D\x4E"
-#define DEDI_API_INIT_FUNC_9_MASK_CSNZ "xxxxx?xxxxxxxx?xxxxxxx?xxxx"
+#define DEDI_API_INIT_FUNC_9_SIG_CSNZ "\x55\x8B\xEC\x51\xA1\x00\x00\x00\x00\x85\xC0\x74\x00\x80\x3D\x00\x00\x00\x00\x00"
+#define DEDI_API_INIT_FUNC_9_MASK_CSNZ "xxxxx????xxx?xx????x"
 
 #define DEDI_API_INIT_FUNC_10_SIG_CSNZ "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x51\xA1\x00\x00\x00\x00\x33\xC5\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\xFF\x15"
 #define DEDI_API_INIT_FUNC_10_MASK_CSNZ "xxxx?x????xx????xxx????xxxxx?xx????xx"
@@ -113,6 +110,14 @@ DWORD g_dwMpSize;
 #define DEDI_API_SHUTDOWN_FUNC_2_SIG_CSNZ "\x8B\x0D\x00\x00\x00\x00\x8B\x01\xFF\x50\x00\xA1\x00\x00\x00\x00\x85\xC0"
 #define DEDI_API_SHUTDOWN_FUNC_2_MASK_CSNZ "xx????xxxx?x????xx"
 
+#define FPS_PATCH_SIG_CSNZ "\x77\x00\xF2\x0F\x10\x0D\x00\x00\x00\x00\x66\x0F\x2F\xC8\x76\x00\xF2\x0F\x11\x0D\x00\x00\x00\x00\xB8\x00\x00\x00\x00\x85\xC0"
+#define FPS_PATCH_MASK_CSNZ "x?xxxx????xxxxx?xxxx????x????xx"
+
+#define CMAPENTITYMANAGER_SIG_CSNZ "\x55\x8B\xEC\x51\xA1\x00\x00\x00\x00\x85\xC0\x75\x00\x6A\x00\xE8\x00\x00\x00\x00\x83\xC4\x00\x89\x45\x00\x85\xC0\x74\x00\x00\x00\x00\x00\x00\x00\x66\xC7\x40"
+#define CMAPENTITYMANAGER_MASK_CSNZ "xxxxx????xxx?x?x????xx?xx?xxx???????xxx"
+
+float* g_pFreezeTime;
+
 pfnDediAddTextFunc g_pfnDediAddTextFunc = 0;
 pfnDediUpdateStatusFunc g_pfnDediUpdateStatusFunc = 0;
 
@@ -121,19 +126,14 @@ CRegistry* g_pCRegistry = 0;
 CGame* g_pCGame = 0;
 
 int g_pIsDedicated = 0;
-int g_pDediInitDword2 = 0;
 int g_pBaseSocket = 0;
-void* g_pPacketHostServer = 0;
 char* g_pDediInitDword5 = 0;
-char* g_pDediInitDword6 = 0;
 void* g_pDediInitDwordExport = 0;
-int g_pDediInitDword8 = 0;
 int g_pServerState = 0;
 
 pfnDediInitFunc1 g_pfnDediInitFunc1 = 0;
 pfnDediInitFunc2 g_pfnDediInitFunc2 = 0;
 pfnDediInitFunc3 g_pfnDediInitFunc3 = 0;
-pfnDediInitFunc4 g_pfnDediInitFunc4 = 0;
 pfnDediInitFunc5 g_pfnDediInitFunc5 = 0;
 pfnDediInitFunc6 g_pfnDediInitFunc6 = 0;
 pfnDediInitFunc7 g_pfnDediInitFunc7 = 0;
@@ -155,6 +155,7 @@ class CCSBotManager
 {
 public:
 	virtual void Unknown() = NULL;
+	virtual void Unknown2() = NULL;
 	virtual void Bot_Add(int side) = NULL;
 };
 
@@ -203,6 +204,11 @@ void CSO_Bot_Add()
 		return;
 	}
 	g_pBotManager = **((CCSBotManager***)(dwBotManagerPtr));
+	if (!g_pBotManager)
+	{
+		MessageBox(NULL, "g_pBotManager == NULL!!!", "Error", MB_OK);
+		return;
+	}
 
 	int side = 0;
 	int argc = g_pEngine->Cmd_Argc();
@@ -213,7 +219,7 @@ void CSO_Bot_Add()
 	g_pBotManager->Bot_Add(side);
 }
 
-CreateHookClass(const char*, GetSSLProtocolName)
+const char* __fastcall Hook_GetSSLProtocolName(void* _this)
 {
 	return "None";
 }
@@ -228,19 +234,14 @@ CreateHookClassType(void*, SocketConstructor, int, int a2, int a3, char a4)
 	return g_pfnSocketConstructor(ptr, a2, a3, a4);
 }
 
-CreateHook(__cdecl, void, LogToErrorLog, char* pLogFile, int logFileId, char* fmt, int fmtLen, ...)
+CreateHookClass(void, LogToErrorLog, int logFileId, char* buffer, int size)
 {
-	char outputString[1024];
+	printf("[%s.log] %.*s", logFileId == 3 ? "Error" : "nxa", size, buffer);
 
-	va_list va;
-	va_start(va, fmtLen);
-	_vsnprintf_s(outputString, sizeof(outputString), fmt, va);
-	outputString[1023] = 0;
-	va_end(va);
+	if (buffer[strlen(buffer) - 1] != '\n')
+		printf("\n");
 
-	printf("[LogToErrorLog][%s.log] %s\n", logFileId == 3 ? "Error" : "nxa", outputString);
-
-	g_pfnLogToErrorLog(pLogFile, logFileId, outputString, fmtLen);
+	g_pfnLogToErrorLog(ptr, logFileId, buffer, size);
 }
 
 std::string readStr(char* buffer, int offset)
@@ -257,13 +258,74 @@ std::string readStr(char* buffer, int offset)
 	return result;
 }
 
-CreateHookClass(int, Packet_Voxel_Parse, void* packetBuffer, int packetSize)
+CreateHookClass(int, Packet_Metadata_Parse, void* packetBuffer, int packetSize)
 {
 	int type = *(unsigned char*)packetBuffer;
-	if (type == 20)
-		voxelVxlURL = readStr((char*)packetBuffer, 1);
+	if (type == 65)
+		voxelVxlURL = readStr((char*)packetBuffer, 3);
 
-	return g_pfnPacket_Voxel_Parse(ptr, packetBuffer, packetSize);
+	return g_pfnPacket_Metadata_Parse(ptr, packetBuffer, packetSize);
+}
+
+bool isDirExist(const std::string& path)
+{
+#if defined(_WIN32)
+	struct _stat info;
+	if (_stat(path.c_str(), &info) != 0)
+	{
+		return false;
+	}
+	return (info.st_mode & _S_IFDIR) != 0;
+#else 
+	struct stat info;
+	if (stat(path.c_str(), &info) != 0)
+	{
+		return false;
+	}
+	return (info.st_mode & S_IFDIR) != 0;
+#endif
+}
+
+bool makePath(const std::string& path)
+{
+#if defined(_WIN32)
+	int ret = _mkdir(path.c_str());
+#else
+	mode_t mode = 0755;
+	int ret = mkdir(path.c_str(), mode);
+#endif
+	if (ret == 0)
+		return true;
+
+	switch (errno)
+	{
+	case ENOENT:
+		// parent didn't exist, try to create it
+	{
+		int pos = path.find_last_of('/');
+		if (pos == std::string::npos)
+#if defined(_WIN32)
+			pos = path.find_last_of('\\');
+		if (pos == std::string::npos)
+#endif
+			return false;
+		if (!makePath(path.substr(0, pos)))
+			return false;
+	}
+	// now, try to create again
+#if defined(_WIN32)
+	return 0 == _mkdir(path.c_str());
+#else 
+	return 0 == mkdir(path.c_str(), mode);
+#endif
+
+	case EEXIST:
+		// done!
+		return isDirExist(path);
+
+	default:
+		return false;
+	}
 }
 
 static const int TIMEOUT = 3000;
@@ -362,7 +424,7 @@ CreateHookClass(void, Voxel_LoadWorld)
 				std::string vxlBuffer = response.substr(pos, response.size() - pos);
 				if (!vxlBuffer.empty())
 				{
-					CreateDirectory(vxlFileName.substr(0, vxlFileName.size() - 24).c_str(), NULL);
+					makePath(vxlFileName.substr(0, vxlFileName.size() - 24));
 
 					FILE* file = fopen(vxlFileName.c_str(), "wb");
 					if (file)
@@ -380,6 +442,22 @@ CreateHookClass(void, Voxel_LoadWorld)
 	}
 
 	return g_pfnVoxel_LoadWorld(ptr);
+}
+
+CreateHook(__cdecl, void*, Mod_FindName, int a1, const char* name)
+{
+	std::string nameStr(name);
+	if (nameStr.substr(0, 9) == "models/v_" || nameStr.substr(0, 9) == "models/p_" || nameStr.substr(0, 9) == "models/w_" || nameStr.substr(0, 9) == "models/d_" || nameStr.substr(0, 15) == "models/costume/") {
+		return g_pfnMod_FindName(a1, "models/null.mdl");
+	}
+
+	return g_pfnMod_FindName(a1, name);
+}
+
+CreateHookClass(int, CMapEntityManager)
+{
+	*g_pFreezeTime = 20;
+	return g_pfnCMapEntityManager(ptr);
 }
 
 void Init(HMODULE hModule)
@@ -403,6 +481,24 @@ DWORD WINAPI HookThread(LPVOID lpThreadParameter)
 	}
 	g_dwMpSize = GetModuleSize(GetModuleHandle("mp.dll"));
 
+	// Fix mp_freezetime for modes that start with 20 seconds
+	DWORD pushStr = FindPush(g_dwMpBase, g_dwMpBase + g_dwMpSize, (PCHAR)("monster_spawn_point"), 3);
+	if (!pushStr)
+		MessageBox(NULL, "g_pFreezeTime == NULL!!!", "Error", MB_OK);
+	else
+	{
+		g_pFreezeTime = *(float**)(pushStr + 0x13);
+
+		DWORD find = FindPattern(CMAPENTITYMANAGER_SIG_CSNZ, CMAPENTITYMANAGER_MASK_CSNZ, g_dwMpBase, g_dwMpBase + g_dwMpSize, NULL);
+		if (!find)
+			MessageBox(NULL, "CMapEntityManager == NULL!!!", "Error", MB_OK);
+		else
+			InlineHook((void*)find, Hook_CMapEntityManager, (void*&)g_pfnCMapEntityManager);
+	}
+
+	if (g_pEngine)
+		g_pEngine->pfnAddCommand("cso_bot_add", CSO_Bot_Add);
+
 	return TRUE;
 }
 
@@ -417,7 +513,10 @@ void Hook(HMODULE hModule)
 	if (!find)
 		MessageBox(NULL, "DEDI_API_ADDTEXT == NULL!!!", "Error", MB_OK);
 	else
-		g_pfnDediAddTextFunc = (pfnDediAddTextFunc)(find + 0x30);
+	{
+		DWORD dwDediAddTextAddr = find + 1;
+		g_pfnDediAddTextFunc = (pfnDediAddTextFunc)(dwDediAddTextAddr + 4 + *(DWORD*)dwDediAddTextAddr);
+	}
 
 	find = FindPattern(DEDI_API_UPDATESTATUS_SIG_CSNZ, DEDI_API_UPDATESTATUS_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 	if (!find)
@@ -436,13 +535,13 @@ void Hook(HMODULE hModule)
 		g_pCEngine = *(CEngine**)g_pCEngine;
 	}
 
-	find = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, "Failed to Initialize DirectX. Please restart launcher");
+	find = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, "ScreenWindowed");
 	if (!find)
 		MessageBox(NULL, "CREGISTRY == NULL!!!", "Error", MB_OK);
 	else
 	{
 		BYTE b[4] = { 0,0,0,0 };
-		ReadMemory((void*)(find - 0x17), (BYTE*)b, 4);
+		ReadMemory((void*)(find - 0x6), (BYTE*)b, 4);
 		WriteMemory((void*)&g_pCRegistry, (BYTE*)b, 4);
 		g_pCRegistry = *(CRegistry**)g_pCRegistry;
 	}
@@ -464,10 +563,8 @@ void Hook(HMODULE hModule)
 	else
 	{
 		BYTE b[4] = { 0,0,0,0 };
-		ReadMemory((void*)(find + 0x2C), (BYTE*)b, 4);
+		ReadMemory((void*)(find + 0x40), (BYTE*)b, 4);
 		WriteMemory((void*)&g_pIsDedicated, (BYTE*)b, 4);
-		ReadMemory((void*)(find + 0x46), (BYTE*)b, 4);
-		WriteMemory((void*)&g_pDediInitDword2, (BYTE*)b, 4);
 	}
 
 	find = FindPattern(DEDI_INIT_DWORD_3_SIG_CSNZ, DEDI_INIT_DWORD_3_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
@@ -480,16 +577,6 @@ void Hook(HMODULE hModule)
 		WriteMemory((void*)&g_pBaseSocket, (BYTE*)b, 4);
 	}
 
-	find = FindPattern(DEDI_INIT_DWORD_4_SIG_CSNZ, DEDI_INIT_DWORD_4_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-	if (!find)
-		MessageBox(NULL, "DEDI_INIT_DWORD_4 == NULL!!!", "Error", MB_OK);
-	else
-	{
-		BYTE b[4] = { 0,0,0,0 };
-		ReadMemory((void*)(find + 0x2), (BYTE*)b, 4);
-		WriteMemory((void*)&g_pPacketHostServer, (BYTE*)b, 4);
-	}
-
 	find = FindPattern(DEDI_INIT_DWORD_5_SIG_CSNZ, DEDI_INIT_DWORD_5_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 	if (!find)
 		MessageBox(NULL, "DEDI_INIT_DWORD_5 == NULL!!!", "Error", MB_OK);
@@ -500,16 +587,6 @@ void Hook(HMODULE hModule)
 		WriteMemory((void*)&g_pDediInitDword5, (BYTE*)b, 4);
 	}
 
-	find = FindPattern(DEDI_INIT_DWORD_6_SIG_CSNZ, DEDI_INIT_DWORD_6_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-	if (!find)
-		MessageBox(NULL, "DEDI_INIT_DWORD_6 == NULL!!!", "Error", MB_OK);
-	else
-	{
-		BYTE b[4] = { 0,0,0,0 };
-		ReadMemory((void*)(find + 0x6B), (BYTE*)b, 4);
-		WriteMemory((void*)&g_pDediInitDword6, (BYTE*)b, 4);
-	}
-
 	find = FindPattern(DEDI_INIT_DWORD_EXPORT_SIG_CSNZ, DEDI_INIT_DWORD_EXPORT_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 	if (!find)
 		MessageBox(NULL, "DEDI_INIT_DWORD_EXPORT == NULL!!!", "Error", MB_OK);
@@ -518,16 +595,6 @@ void Hook(HMODULE hModule)
 		BYTE b[4] = { 0,0,0,0 };
 		ReadMemory((void*)(find + 0x3E), (BYTE*)b, 4);
 		WriteMemory((void*)&g_pDediInitDwordExport, (BYTE*)b, 4);
-	}
-
-	find = FindPattern(DEDI_INIT_DWORD_8_SIG_CSNZ, DEDI_INIT_DWORD_8_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-	if (!find)
-		MessageBox(NULL, "DEDI_INIT_DWORD_8 == NULL!!!", "Error", MB_OK);
-	else
-	{
-		BYTE b[4] = { 0,0,0,0 };
-		ReadMemory((void*)(find + 0x35), (BYTE*)b, 4);
-		WriteMemory((void*)&g_pDediInitDword8, (BYTE*)b, 4);
 	}
 
 	find = FindPattern(CSERVERSTATE_SIG_CSNZ, CSERVERSTATE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
@@ -622,7 +689,7 @@ void Hook(HMODULE hModule)
 	else
 		InlineHook((void*)find, Hook_Packet_Hack_Parse, dummy);
 
-	find = FindPattern(SOCKETMANAGER_SIG_CSNZ23, SOCKETMANAGER_MASK_CSNZ23, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+	find = FindPattern(SOCKETMANAGER_SIG_CSNZ, SOCKETMANAGER_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 	if (!find)
 		MessageBox(NULL, "SocketManagerConstructor == NULL!!!", "Error", MB_OK);
 	else
@@ -637,8 +704,6 @@ void Hook(HMODULE hModule)
 	g_pEngine = (cl_enginefunc_t*)(PVOID) * (PDWORD)(FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("ScreenFade")) + 0x0D);
 	if (!g_pEngine)
 		MessageBox(NULL, "g_pEngine == NULL!!!", "Error", MB_OK);
-	else
-		g_pEngine->pfnAddCommand("cso_bot_add", CSO_Bot_Add);
 
 	if (!g_bUseSSL)
 	{
@@ -647,7 +712,7 @@ void Hook(HMODULE hModule)
 		if (!find)
 			MessageBox(NULL, "GetSSLProtocolName == NULL!!!", "Error", MB_OK);
 		else
-			InlineHookFromCallOpcode((void*)find, Hook_GetSSLProtocolName, (void*&)g_pfnGetSSLProtocolName, dummy);
+			InlineHookFromCallOpcode((void*)find, Hook_GetSSLProtocolName, dummy, dummy);
 
 		// hook SocketConstructor to create ctx objects
 		find = FindPattern(SOCKETCONSTRUCTOR_SIG_CSNZ, SOCKETCONSTRUCTOR_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
@@ -666,11 +731,11 @@ void Hook(HMODULE hModule)
 		}
 	}
 
-	find = FindPattern(PACKET_VOXEL_PARSE_SIG_CSNZ, PACKET_VOXEL_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+	find = FindPattern(PACKET_METADATA_PARSE_SIG_CSNZ, PACKET_METADATA_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 	if (!find)
-		MessageBox(NULL, "Packet_Voxel_Parse == NULL!!!", "Error", MB_OK);
+		MessageBox(NULL, "Packet_Metadata_Parse == NULL!!!", "Error", MB_OK);
 	else
-		InlineHook((void*)find, Hook_Packet_Voxel_Parse, (void*&)g_pfnPacket_Voxel_Parse);
+		InlineHook((void*)find, Hook_Packet_Metadata_Parse, (void*&)g_pfnPacket_Metadata_Parse);
 
 	find = FindPattern(VOXEL_LOADWORLD_SIG_CSNZ, VOXEL_LOADWORLD_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 	if (!find)
@@ -688,14 +753,47 @@ void Hook(HMODULE hModule)
 	}
 
 	// patch 1000 fps limit
-	find = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, "%3i fps -- host(%3.0f) sv(%3.0f) cl(%3.0f) gfx(%3.0f) snd(%3.0f) ents(%d)\n", 2);
+	find = FindPattern(FPS_PATCH_SIG_CSNZ, FPS_PATCH_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 	if (!find)
 		MessageBox(NULL, "1000Fps_Patch == NULL!!!", "Error", MB_OK);
 	else
 	{
-		DWORD patchAddr = find - 0x43A;
 		BYTE patch[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
-		WriteMemory((void*)patchAddr, (BYTE*)patch, sizeof(patch));
+		WriteMemory((void*)find, (BYTE*)patch, sizeof(patch));
+	}
+
+	// patch socket
+	find = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("SocketManager - Max retry reached!!! Server Connection failed \n"));
+	if (!find)
+		MessageBox(NULL, "Socket_Patch == NULL!!!", "Error", MB_OK);
+	else
+	{
+		find -= 0xE;
+		BYTE patch[] = { 0x01 };
+		WriteMemory((void*)find, (BYTE*)patch, sizeof(patch));
+	}
+
+	// patch dedi models
+	find = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("PF_precache_model_I: Model '%s' failed to precache because the item count is over the %d limit.\nReduce the number of brush models and/or regular models in the map to correct this."));
+	if (!find)
+		MessageBox(NULL, "Dedi_Models_Patch == NULL!!!", "Error", MB_OK);
+	else
+	{
+		find += 0x48;
+		BYTE patch[] = { 0x75 };
+		WriteMemory((void*)find, (BYTE*)patch, sizeof(patch));
+
+		InlineHookFromCallOpcode((void*)(find + 0x1D), Hook_Mod_FindName, (void*&)g_pfnMod_FindName, dummy);
+	}
+
+	find = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("PF_precache_model_dynamic_I: Model '%s' failed to precache because the item count is over the %d limit.\nReduce the number of brush models and/or regular models in the map to correct this."));
+	if (!find)
+		MessageBox(NULL, "Dedi_Models_Patch2 == NULL!!!", "Error", MB_OK);
+	else
+	{
+		find += 0x48;
+		BYTE patch[] = { 0x75 };
+		WriteMemory((void*)find, (BYTE*)patch, sizeof(patch));
 	}
 
 	// create thread to wait for mp.dll

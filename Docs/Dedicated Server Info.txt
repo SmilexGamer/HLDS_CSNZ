@@ -10,20 +10,15 @@ Launch parameter list for the dedicated server:
 1. -ip <ip> (master server's IP. default: 127.0.0.1)
 2. -lobbyport <lobbyport> (master server's port. default: 30002)
 3. -hostip <hostip> (dedicated server's IP. if not set, the master server will get the IP)
-4. -port <port> (dedicated server's port. default: 27015)
-5. -logfile <logfile> (prefix of the .log file. default: csods)
-6. -vxlpath <path> (path to where the .vxl files will be stored when downloaded by the dedicated server. the path must not contain spaces, or else it will be cut off. default: %temp%)
-7. -pingboost <value> (sleep function. 4 - NtDelayExecution(FALSE, -1LL), 5 - this_thread::yield(). if not set, the server will be stuck on 64fps, so it's recommended to either use -pingboost 4 or 5. default: 0 - this_thread::sleep_for(1ms))
-8. -usessl (use ssl when connecting to the master server. by default, not using ssl)
+4. -hostdomain <hostdomain> (dedicated server's domain. not implemented, server will ignore)
+5. -port <port> (dedicated server's port. default: 27015)
+6. -logfile <logfile> (prefix of the .log file. default: csods)
+7. -vxlpath <path> (path to where the .vxl files will be stored when downloaded by the dedicated server. the path must not contain spaces, or else it will be cut off. default: %temp%)
+8. -pingboost <value> (sleep function. 4 - NtDelayExecution(FALSE, -1LL), 5 - this_thread::yield(). if not set, the server will be stuck on 64fps, so it's recommended to either use -pingboost 4 or 5. default: 0 - this_thread::sleep_for(chrono::milliseconds(1)))
+9. -usessl (use ssl when connecting to the master server. by default, not using ssl)
 
 Command list for the dedicated server:
 1. cso_bot_add (add T bot)
 2. cso_bot_add 1 (add CT bot)
 
 For the list of files that the dedicated server requires to run, refer to "List of files required for dedicated server.txt" in the folder "Documentation"
-
-fixtrike.nar links (choose one):
-
-https://www.mediafire.com/file/54g0bqrozv8qcxx/fixtrike.nar/file
-https://mega.nz/file/8pVDmQ5I#MkRNLzS3bpVuyLbpZZ2YaPPKz6GX8faAxsJHrJI9gII
-https://drive.google.com/file/d/1LOJWbNTju1jhxobmTG7xbvcKsN-3M-qE/view

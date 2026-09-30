@@ -97,13 +97,10 @@ extern CGame* g_pCGame;
 
 
 extern int g_pIsDedicated;
-extern int g_pDediInitDword2;
 extern int g_pBaseSocket;
 extern void* g_pPacketHostServer;
 extern char* g_pDediInitDword5;
-extern char* g_pDediInitDword6;
 extern void* g_pDediInitDwordExport;
-extern int g_pDediInitDword8;
 extern int g_pServerState;
 
 typedef void(__cdecl* pfnDediInitFunc1)(const char*, const char*, int);
@@ -114,12 +111,6 @@ extern pfnDediInitFunc2 g_pfnDediInitFunc2;
 
 typedef int (*pfnDediInitFunc3)(const char*, void*);
 extern pfnDediInitFunc3 g_pfnDediInitFunc3;
-
-typedef int (*pfnDediInitFunc4)(const char*);
-extern pfnDediInitFunc4 g_pfnDediInitFunc4;
-
-typedef int (*pfnDediInitFunc4)(const char*);
-extern pfnDediInitFunc4 g_pfnDediInitFunc4;
 
 typedef int (*pfnDediInitFunc5)(char*, const char*, ...);
 extern pfnDediInitFunc5 g_pfnDediInitFunc5;
@@ -133,7 +124,7 @@ extern pfnDediInitFunc7 g_pfnDediInitFunc7;
 typedef void (*pfnDediInitFunc8)(char*, int, int);
 extern pfnDediInitFunc8 g_pfnDediInitFunc8;
 
-typedef void(__thiscall* pfnDediInitFunc9)(void*, const char*);
+typedef void* (__stdcall* pfnDediInitFunc9)(const char*);
 extern pfnDediInitFunc9 g_pfnDediInitFunc9;
 
 typedef void (*pfnDediInitFunc10)(LPCSTR);

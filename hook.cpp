@@ -444,14 +444,12 @@ CreateHookClass(void, Voxel_LoadWorld)
 	return g_pfnVoxel_LoadWorld(ptr);
 }
 
-CreateHook(__cdecl, void*, Mod_FindName, int a1, const char* name)
+CreateHook(__cdecl, void*, Mod_FindName, qboolean trackCRC, const char* name)
 {
-	std::string nameStr(name);
-	if (nameStr.substr(0, 9) == "models/v_" || nameStr.substr(0, 9) == "models/p_" || nameStr.substr(0, 9) == "models/w_" || nameStr.substr(0, 9) == "models/d_" || nameStr.substr(0, 15) == "models/costume/") {
-		return g_pfnMod_FindName(a1, "models/null.mdl");
-	}
+	if (strstr(name, "/v_") != NULL || strstr(name, "/w_") != NULL || strstr(name, "/p_") != NULL || strstr(name, "/d_") != NULL || strstr(name, "/costume") != NULL)
+		return g_pfnMod_FindName(trackCRC, "models/null.mdl");
 
-	return g_pfnMod_FindName(a1, name);
+	return g_pfnMod_FindName(trackCRC, name);
 }
 
 CreateHookClass(int, CMapEntityManager)

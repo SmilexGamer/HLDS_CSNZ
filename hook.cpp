@@ -47,6 +47,9 @@ DWORD g_dwMpSize;
 #define PACKET_METADATA_PARSE_SIG_CSNZ "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x57\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\xF1\x89\xB5\x00\x00\x00\x00\x8B\x45\x00\x89\x85"
 #define PACKET_METADATA_PARSE_MASK_CSNZ "xxxx?x????xx????xxx????x????xxxx?xxxxx?xx????xxxx????xx?xx"
 
+#define PACKET_ROOM_PARSE_SIG_CSNZ "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\xB8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x57\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\xF9\x89"
+#define PACKET_ROOM_PARSE_MASK_CSNZ "xxxx?x????xx????xx????x????x????xxxx?xxxxx?xx????xxx"
+
 #define VOXEL_LOADWORLD_SIG_CSNZ "\x55\x8B\xEC\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x57\x8B\x3D\x00\x00\x00\x00\x85\xFF\x0F\x84\x00\x00\x00\x00\x83\x3D\x00\x00\x00\x00\x00"
 #define VOXEL_LOADWORLD_MASK_CSNZ "xxxxx????x????xxxx?xxx????xxxx????xx????x"
 
@@ -116,6 +119,84 @@ DWORD g_dwMpSize;
 #define CMAPENTITYMANAGER_SIG_CSNZ "\x55\x8B\xEC\x51\xA1\x00\x00\x00\x00\x85\xC0\x75\x00\x6A\x00\xE8\x00\x00\x00\x00\x83\xC4\x00\x89\x45\x00\x85\xC0\x74\x00\x00\x00\x00\x00\x00\x00\x66\xC7\x40"
 #define CMAPENTITYMANAGER_MASK_CSNZ "xxxxx????xxx?x?x????xx?xx?xxx???????xxx"
 
+// ROOM LOW FLAGS
+#define	ROOM_LOW_ROOMNAME				(1<<0)
+#define	ROOM_LOW_UNK					(1<<1)
+#define	ROOM_LOW_PASSWORD				(1<<3)
+#define	ROOM_LOW_LEVELLIMIT				(1<<4)
+#define	ROOM_LOW_UNK7					(1<<5)
+#define	ROOM_LOW_GAMEMODEID				(1<<6)
+#define	ROOM_LOW_MAPID					(1<<7)
+#define	ROOM_LOW_MAXPLAYERS				(1<<8)
+#define ROOM_LOW_WINLIMIT				(1<<9)
+#define ROOM_LOW_KILLLIMIT				(1<<10)
+#define	ROOM_LOW_GAMETIME				(1<<11)
+#define ROOM_LOW_ROUNDTIME				(1<<12)
+#define ROOM_LOW_WEAPONLIMIT			(1<<13)
+#define ROOM_LOW_HOSTAGEKILLLIMIT		(1<<14)
+#define ROOM_LOW_FREEZETIME				(1<<15)
+#define	ROOM_LOW_BUYTIME				(1<<16)
+#define ROOM_LOW_DISPLAYNICKNAME		(1<<17)
+#define ROOM_LOW_TEAMBALANCE			(1<<18)
+#define ROOM_LOW_UNK21					(1<<19)
+#define ROOM_LOW_FRIENDLYFIRE			(1<<20)
+#define ROOM_LOW_FLASHLIGHT				(1<<21)
+#define ROOM_LOW_FOOTSTEPS				(1<<22)
+#define ROOM_LOW_UNK25					(1<<23)
+#define ROOM_LOW_TKPUNISH				(1<<24)
+#define ROOM_LOW_AUTOKICK				(1<<25)
+#define ROOM_LOW_UNK28					(1<<26)
+#define ROOM_LOW_UNK29					(1<<27)
+#define ROOM_LOW_VIEWFLAG				(1<<28)
+#define ROOM_LOW_VOICECHAT				(1<<29)
+#define ROOM_LOW_STATUS					(1<<30)
+
+// ROOM LOW-MID FLAGS
+#define	ROOM_LOWMID_C4TIMER				(1<<1)
+#define	ROOM_LOWMID_BOT					(1<<2)
+#define	ROOM_LOWMID_KDRULE				(1<<3)
+#define	ROOM_LOWMID_STARTINGCASH		(1<<4)
+#define	ROOM_LOWMID_MOVINGSHOT			(1<<5)
+#define	ROOM_LOWMID_BALLNUMBER			(1<<6)
+#define	ROOM_LOWMID_STATUSSYMBOL		(1<<7)
+#define	ROOM_LOWMID_RANDOMMAP			(1<<8)
+#define ROOM_LOWMID_MAPPLAYLIST			(1<<9)
+#define ROOM_LOWMID_MAPPLAYLISTINDEX	(1<<10)
+#define ROOM_LOWMID_ENHANCERESTRICT		(1<<11)
+#define ROOM_LOWMID_SD					(1<<12)
+#define ROOM_LOWMID_ZSDIFFICULTY		(1<<13)
+#define ROOM_LOWMID_LEAGUERULE			(1<<14)
+#define ROOM_LOWMID_MANNERLIMIT			(1<<15)
+#define ROOM_LOWMID_MAPID2				(1<<16)
+#define ROOM_LOWMID_ZBLIMIT				(1<<17)
+#define ROOM_LOWMID_VOXEL				(1<<18)
+
+// Studio mode flags
+#define VOXELFLAG_ID				(1<<0)
+#define VOXELFLAG_RESOURCEID		(1<<1)
+#define VOXELFLAG_RESOURCEMAXPLAYER	(1<<2)
+#define VOXELFLAG_TITLE				(1<<3)
+#define VOXELFLAG_RESOURCEMODE		(1<<4)
+#define VOXELFLAG_PERMISSION		(1<<5)
+#define VOXELFLAG_DESCRIPTION		(1<<6)
+#define VOXELFLAG_PARENTSSLOTID		(1<<7)
+#define VOXELFLAG_IMAGEID			(1<<8)
+#define VOXELFLAG_CREATORNICKNAME	(1<<9)
+#define VOXELFLAG_CREATORUSERNAME	(1<<10)
+#define VOXELFLAG_LIKECOUNT			(1<<11)
+#define VOXELFLAG_PLAYCOUNT			(1<<12)
+#define VOXELFLAG_BOOKMARKCOUNT		(1<<13)
+#define VOXELFLAG_UNK15				(1<<14)
+#define VOXELFLAG_CUBECOUNT			(1<<15)
+#define VOXELFLAG_UNK17				(1<<16)
+#define VOXELFLAG_UNK18				(1<<17)
+#define VOXELFLAG_SLOTCATEGORY		(1<<19)
+#define VOXELFLAG_SANDBOXSCRIPT		(1<<21)
+#define VOXELFLAG_SAVEGROUPID		(1<<22)
+#define VOXELFLAG_UNK22				(1<<23)
+#define VOXELFLAG_UNK23				(1<<24)
+#define VOXELFLAG_SERVERID			(1<<25)
+
 float* g_pFreezeTime;
 
 pfnDediAddTextFunc g_pfnDediAddTextFunc = 0;
@@ -147,7 +228,8 @@ pfnDediShutdownFunc2 g_pfnDediShutdownFunc2 = 0;
 
 char g_pVxlPath[MAX_PATH];
 bool g_bUseSSL = false;
-std::string voxelVxlURL;
+std::vector<std::string> voxelVxlURL;
+int voxelServerID;
 
 cl_enginefunc_t* g_pEngine;
 
@@ -262,9 +344,280 @@ CreateHookClass(int, Packet_Metadata_Parse, void* packetBuffer, int packetSize)
 {
 	int type = *(unsigned char*)packetBuffer;
 	if (type == 65)
-		voxelVxlURL = readStr((char*)packetBuffer, 3);
+	{
+		voxelVxlURL.clear();
+
+		int offset = 1;
+		std::string str;
+		int size2;
+		int size3;
+
+		int size = *((unsigned char*)((char*)packetBuffer + offset)); offset++;
+
+		for (int i = 0; i < size; i++)
+		{
+			offset++;
+			str = readStr((char*)packetBuffer, offset); offset += str.size() + 1;
+			voxelVxlURL.push_back(str);
+			str = readStr((char*)packetBuffer, offset); offset += str.size() + 1;
+
+			size2 = *((unsigned char*)((char*)packetBuffer + offset)); offset++;
+
+			for (int j = 0; j < size2; j++)
+			{
+				str = readStr((char*)packetBuffer, offset); offset += str.size() + 1;
+
+				size3 = *((unsigned char*)((char*)packetBuffer + offset)); offset++;
+				offset += size3 * 2;
+			}
+		}
+	}
 
 	return g_pfnPacket_Metadata_Parse(ptr, packetBuffer, packetSize);
+}
+
+CreateHookClass(int, Packet_Room_Parse, void* packetBuffer, int packetSize)
+{
+	int type = *(unsigned char*)packetBuffer;
+	if (type == 0)
+	{
+		int offset = 13;
+		std::string str;
+
+		int lowFlag = *((unsigned long*)((char*)packetBuffer + offset)); offset += 4;
+		int lowMidFlag = *((unsigned long*)((char*)packetBuffer + offset)); offset += 4;
+		int highMidFlag = *((unsigned long*)((char*)packetBuffer + offset)); offset += 4;
+		int HighFlag = *((unsigned long*)((char*)packetBuffer + offset)); offset += 4;
+
+		if (lowFlag & ROOM_LOW_ROOMNAME) {
+			str = readStr((char*)packetBuffer, offset); offset += str.size() + 1;
+		}
+		if (lowFlag & ROOM_LOW_UNK) {
+			offset++;
+		}
+		if (lowFlag & ROOM_LOW_PASSWORD) {
+			str = readStr((char*)packetBuffer, offset); offset += str.size() + 1;
+		}
+		if (lowFlag & ROOM_LOW_LEVELLIMIT) {
+			offset++;
+		}
+		if (lowFlag & ROOM_LOW_UNK7) {
+			offset++;
+		}
+		if (lowFlag & ROOM_LOW_GAMEMODEID) {
+			offset++;
+		}
+		if (lowFlag & ROOM_LOW_MAPID) {
+			offset += 2;
+		}
+		if (lowFlag & ROOM_LOW_MAXPLAYERS) {
+			offset++;
+		}
+		if (lowFlag & ROOM_LOW_WINLIMIT) {
+			offset++;
+		}
+		if (lowFlag & ROOM_LOW_KILLLIMIT) {
+			offset += 2;
+		}
+		if (lowFlag & ROOM_LOW_GAMETIME) {
+			offset++;
+		}
+		if (lowFlag & ROOM_LOW_ROUNDTIME) {
+			offset++;
+		}
+		if (lowFlag & ROOM_LOW_WEAPONLIMIT) {
+			int weaponLimit = *((unsigned char*)((char*)packetBuffer + offset)); offset++;
+			if (weaponLimit == 18) {
+				offset += 128;
+			}
+		}
+		if (lowFlag & ROOM_LOW_HOSTAGEKILLLIMIT) {
+			offset++;
+		}
+		if (lowFlag & ROOM_LOW_FREEZETIME) {
+			offset++;
+		}
+		if (lowFlag & ROOM_LOW_BUYTIME) {
+			offset++;
+		}
+		if (lowFlag & ROOM_LOW_DISPLAYNICKNAME) {
+			offset++;
+		}
+		if (lowFlag & ROOM_LOW_TEAMBALANCE) {
+			offset++;
+		}
+		if (lowFlag & ROOM_LOW_UNK21) {
+			offset++;
+		}
+		if (lowFlag & ROOM_LOW_FRIENDLYFIRE) {
+			offset++;
+		}
+		if (lowFlag & ROOM_LOW_FLASHLIGHT) {
+			offset++;
+		}
+		if (lowFlag & ROOM_LOW_FOOTSTEPS) {
+			offset++;
+		}
+		if (lowFlag & ROOM_LOW_UNK25) {
+			offset++;
+		}
+		if (lowFlag & ROOM_LOW_TKPUNISH) {
+			offset++;
+		}
+		if (lowFlag & ROOM_LOW_AUTOKICK) {
+			offset++;
+		}
+		if (lowFlag & ROOM_LOW_UNK28) {
+			offset++;
+		}
+		if (lowFlag & ROOM_LOW_UNK29) {
+			offset++;
+		}
+		if (lowFlag & ROOM_LOW_VIEWFLAG) {
+			offset++;
+		}
+		if (lowFlag & ROOM_LOW_VOICECHAT) {
+			offset++;
+		}
+		if (lowFlag & ROOM_LOW_STATUS) {
+			offset++;
+		}
+
+		if (lowMidFlag & ROOM_LOWMID_C4TIMER) {
+			offset++;
+		}
+		if (lowMidFlag & ROOM_LOWMID_BOT) {
+			offset += 5;
+		}
+		if (lowMidFlag & ROOM_LOWMID_KDRULE) {
+			offset++;
+		}
+		if (lowMidFlag & ROOM_LOWMID_STARTINGCASH) {
+			offset += 2;
+		}
+		if (lowMidFlag & ROOM_LOWMID_MOVINGSHOT) {
+			offset++;
+		}
+		if (lowMidFlag & ROOM_LOWMID_BALLNUMBER) {
+			offset++;
+		}
+		if (lowMidFlag & ROOM_LOWMID_STATUSSYMBOL) {
+			offset++;
+		}
+		if (lowMidFlag & ROOM_LOWMID_RANDOMMAP) {
+			offset++;
+		}
+		if (lowMidFlag & ROOM_LOWMID_MAPPLAYLIST) {
+			int mapPlaylistSize = *((unsigned char*)((char*)packetBuffer + offset)); offset++;
+			offset += mapPlaylistSize * 3;
+		}
+		if (lowMidFlag & ROOM_LOWMID_MAPPLAYLISTINDEX) {
+			offset++;
+		}
+		if (lowMidFlag & ROOM_LOWMID_ENHANCERESTRICT) {
+			offset++;
+		}
+		if (lowMidFlag & ROOM_LOWMID_SD) {
+			offset++;
+		}
+		if (lowMidFlag & ROOM_LOWMID_ZSDIFFICULTY) {
+			offset += 10;
+		}
+		if (lowMidFlag & ROOM_LOWMID_LEAGUERULE) {
+			offset++;
+		}
+		if (lowMidFlag & ROOM_LOWMID_MANNERLIMIT) {
+			offset++;
+		}
+		if (lowMidFlag & ROOM_LOWMID_MAPID2) {
+			offset += 2;
+		}
+		if (lowMidFlag & ROOM_LOWMID_ZBLIMIT) {
+			offset += 17;
+		}
+		if (lowMidFlag & ROOM_LOWMID_VOXEL) {
+			int voxelFlag = *((unsigned long*)((char*)packetBuffer + offset)); offset += 4;
+			if (voxelFlag & VOXELFLAG_ID) {
+				str = readStr((char*)packetBuffer, offset); offset += str.size() + 1;
+			}
+			if (voxelFlag & VOXELFLAG_RESOURCEID) {
+				str = readStr((char*)packetBuffer, offset); offset += str.size() + 1;
+			}
+			if (voxelFlag & VOXELFLAG_RESOURCEMAXPLAYER) {
+				offset++;
+			}
+			if (voxelFlag & VOXELFLAG_TITLE) {
+				str = readStr((char*)packetBuffer, offset); offset += str.size() + 1;
+			}
+			if (voxelFlag & VOXELFLAG_RESOURCEMODE) {
+				offset++;
+			}
+			if (voxelFlag & VOXELFLAG_PERMISSION) {
+				offset++;
+			}
+			if (voxelFlag & VOXELFLAG_DESCRIPTION) {
+				str = readStr((char*)packetBuffer, offset); offset += str.size() + 1;
+			}
+			if (voxelFlag & VOXELFLAG_PARENTSSLOTID) {
+				str = readStr((char*)packetBuffer, offset); offset += str.size() + 1;
+			}
+			if (voxelFlag & VOXELFLAG_IMAGEID) {
+				str = readStr((char*)packetBuffer, offset); offset += str.size() + 1;
+			}
+			if (voxelFlag & VOXELFLAG_CREATORNICKNAME) {
+				str = readStr((char*)packetBuffer, offset); offset += str.size() + 1;
+			}
+			if (voxelFlag & VOXELFLAG_CREATORUSERNAME) {
+				str = readStr((char*)packetBuffer, offset); offset += str.size() + 1;
+			}
+			if (voxelFlag & VOXELFLAG_LIKECOUNT) {
+				offset += 4;
+			}
+			if (voxelFlag & VOXELFLAG_PLAYCOUNT) {
+				offset += 4;
+			}
+			if (voxelFlag & VOXELFLAG_BOOKMARKCOUNT) {
+				offset += 4;
+			}
+			if (voxelFlag & VOXELFLAG_UNK15) {
+				int voxel_unk15_size = *((unsigned long*)((char*)packetBuffer + offset)); offset += 4;
+				for (int i = 0; i < voxel_unk15_size; i++)
+				{
+					offset += 4;
+					str = readStr((char*)packetBuffer, offset); offset += str.size() + 1;
+				}
+			}
+			if (voxelFlag & VOXELFLAG_CUBECOUNT) {
+				offset += 4;
+			}
+			if (voxelFlag & VOXELFLAG_UNK17) {
+				offset += 4;
+			}
+			if (voxelFlag & VOXELFLAG_UNK18) {
+				offset += 4;
+			}
+			if (voxelFlag & VOXELFLAG_SLOTCATEGORY) {
+				offset++;
+			}
+			if (voxelFlag & VOXELFLAG_SANDBOXSCRIPT) {
+				offset++;
+			}
+			if (voxelFlag & VOXELFLAG_SAVEGROUPID) {
+				str = readStr((char*)packetBuffer, offset); offset += str.size() + 1;
+			}
+			if (voxelFlag & VOXELFLAG_UNK22) {
+				offset++;
+			}
+			if (voxelFlag & VOXELFLAG_UNK23) {
+				offset++;
+			}
+			if (voxelFlag & VOXELFLAG_SERVERID) {
+				voxelServerID = *((unsigned char*)((char*)packetBuffer + offset));
+			}
+		}
+	}
+
+	return g_pfnPacket_Room_Parse(ptr, packetBuffer, packetSize);
 }
 
 bool isDirExist(const std::string& path)
@@ -357,7 +710,7 @@ CreateHookClass(void, Voxel_LoadWorld)
 		std::string voxelVxlDomain;
 		std::regex r("https?:\\/\\/(?:www\\.)?([-a-zA-Z0-9@:%._\\+~#=]{1,256})");
 		std::smatch sm;
-		regex_search(voxelVxlURL, sm, r);
+		regex_search(voxelVxlURL[voxelServerID], sm, r);
 		voxelVxlDomain = sm[1];
 
 		struct hostent* he;
@@ -734,6 +1087,12 @@ void Hook(HMODULE hModule)
 		MessageBox(NULL, "Packet_Metadata_Parse == NULL!!!", "Error", MB_OK);
 	else
 		InlineHook((void*)find, Hook_Packet_Metadata_Parse, (void*&)g_pfnPacket_Metadata_Parse);
+
+	find = FindPattern(PACKET_ROOM_PARSE_SIG_CSNZ, PACKET_ROOM_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+	if (!find)
+		MessageBox(NULL, "Packet_Room_Parse == NULL!!!", "Error", MB_OK);
+	else
+		InlineHook((void*)find, Hook_Packet_Room_Parse, (void*&)g_pfnPacket_Room_Parse);
 
 	find = FindPattern(VOXEL_LOADWORLD_SIG_CSNZ, VOXEL_LOADWORLD_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 	if (!find)

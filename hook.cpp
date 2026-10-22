@@ -763,32 +763,48 @@ CreateHookClass(void, Voxel_LoadWorld)
 			}
 
 			std::string response;
-			char c;
-			while (recv(sock, &c, 1, 0) > 0)
+			char bufferResponse[8192];
+			SSIZE_T n;
+
+			while (response.find("\r\n\r\n") == std::string::npos)
 			{
-				response.push_back(c);
+				n = recv(sock, bufferResponse, sizeof(bufferResponse), 0);
+				if (n <= 0)
+					break;
+
+				response.append(bufferResponse, n);
 			}
+
+			size_t bodyStart = response.find("\r\n\r\n") + 4;
+
+			size_t pos = response.find("Content-Length: ");
+			if (pos == std::string::npos)
+				return g_pfnVoxel_LoadWorld(ptr);
+
+			size_t contentLength = stoul(response.substr(pos + 16));
+
+			while (response.size() - bodyStart < contentLength)
+			{
+				n = recv(sock, bufferResponse, sizeof(bufferResponse), 0);
+				if (n <= 0)
+					break;
+
+				response.append(bufferResponse, n);
+			}
+
+			std::string body = response.substr(bodyStart, contentLength);
 
 			closesocket(sock);
 
-			if (!response.empty())
+			if (!body.empty())
 			{
-				size_t pos = response.find("csov");
-				std::string vxlBuffer = response.substr(pos, response.size() - pos);
-				if (!vxlBuffer.empty())
-				{
-					makePath(vxlFileName.substr(0, vxlFileName.size() - 24));
+				makePath(vxlFileName.substr(0, vxlFileName.size() - 24));
 
-					FILE* file = fopen(vxlFileName.c_str(), "wb");
-					if (file)
-					{
-						fwrite(vxlBuffer.data(), vxlBuffer.size(), 1, file);
-						fclose(file);
-					}
-					else
-					{
-						return g_pfnVoxel_LoadWorld(ptr);
-					}
+				FILE* file = fopen(vxlFileName.c_str(), "wb");
+				if (file)
+				{
+					fwrite(body.data(), body.size(), 1, file);
+					fclose(file);
 				}
 			}
 		}

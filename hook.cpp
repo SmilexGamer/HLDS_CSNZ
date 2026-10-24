@@ -777,9 +777,16 @@ CreateHookClass(void, Voxel_LoadWorld)
 
 			size_t bodyStart = response.find("\r\n\r\n") + 4;
 
-			size_t pos = response.find("Content-Length: ");
+			std::string responseLower = response;
+			transform(responseLower.begin(), responseLower.end(), responseLower.begin(),
+				[](unsigned char c) { return tolower(c); });
+
+			size_t pos = responseLower.find("content-length: ");
 			if (pos == std::string::npos)
+			{
+				closesocket(sock);
 				return g_pfnVoxel_LoadWorld(ptr);
+			}
 
 			size_t contentLength = stoul(response.substr(pos + 16));
 
